@@ -12,7 +12,7 @@ The thesis is publicly available at the [ETH Research Collection](https://www.re
 
 The pseudo code of 3D-Shampoo is shown below
 
-![image info](./3d-shampoo_pseudo_code.png)
+![image info](./3d-shampoo_pseudo_code2.png)
 
 ## How to install
 
