@@ -8,11 +8,11 @@ preconditioning matrices across all available workers.
 3D-Shampoo is a modified version of Google-Research's [Shampoo](https://github.com/noabauma/google-research/tree/master/scalable_shampoo/pytorch).
 
 This code was created as part of my Master thesis "Distribtued Gradient Preconditioning for Training Large-Scale Models".
-The thesis is publicly available at the [ETH Research Collection](https://www.research-collection.ethz.ch/handle/20.500.11850/615331) and you will find much more detail about this optimizer there.
+For more informations about 3D-Shampoo check out my Master thesis which is publicly available at the [ETH Research Collection](https://www.research-collection.ethz.ch/handle/20.500.11850/615331).
 
-The pseudo code of 3D-Shampoo is shown below
+The pseudocode of 3D-Shampoo is shown below
 
-![image info](./3d-shampoo_pseudo_code2.png)
+![image info](./3d-shampoo_pseudocode.png)
 
 ## How to install
 
