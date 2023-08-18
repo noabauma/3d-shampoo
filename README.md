@@ -21,7 +21,7 @@ Atm, you don't have to install it, you only need to link the folders to your pyt
 You can use 3D-Shampoo like every other type of PyTorch based optimizers. 
 3D-Shampoo will work if initialized with DeepSpeed, otherwise it is just basic Shampoo from Google-Research.
 
-"""python
+```python
 # loading 3d-shampoo optimizer
 import sys
 sys.path.append('../3d-shampoo/src/')
@@ -42,5 +42,5 @@ model_engine, optimizer, _, _ = deepspeed.initialize(args=cmd_args,
                                                          model=model,
                                                          optimizer=optimizer
                                                         )
-"""
+```
 
