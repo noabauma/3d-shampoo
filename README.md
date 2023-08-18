@@ -22,11 +22,18 @@ You can use 3D-Shampoo like every other type of PyTorch based optimizers.
 3D-Shampoo will work if initialized with DeepSpeed, otherwise it is just basic Shampoo from Google-Research.
 
 ```python
+# loading libraries
+import torch
+import torch.distributed as dist
+import deepspeed
+...
+
 # loading 3d-shampoo optimizer
 import sys
 sys.path.append('../3d-shampoo/src/')
 import shampoo
 
+# initialize torch.distributed, define model, load datasets, etc.
 ...
 
 optimizer = shampoo.Shampoo(params=model.parameters(),
@@ -39,8 +46,11 @@ optimizer = shampoo.Shampoo(params=model.parameters(),
                             hyperparams=shampoo.ShampooHyperParams(ignore_embedding_layer=True))
 							
 model_engine, optimizer, _, _ = deepspeed.initialize(args=cmd_args,
-                                                         model=model,
-                                                         optimizer=optimizer
-                                                        )
+                                                     model=model,
+                                                     optimizer=optimizer
+                                                     )
+														
+# train your model
+...
 ```
 
