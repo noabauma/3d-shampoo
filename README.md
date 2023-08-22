@@ -13,11 +13,11 @@ For more informations about 3D-Shampoo check out my Master thesis which is publi
 
 The pseudocode of 3D-Shampoo is shown below
 
-![image info](./3d-shampoo_pseudocode.png)
+![image info](./figures/3d-shampoo_pseudocode.png)
 
 3D-Shampoo will distributed the preconditioning matrices accordingly on the level of parallelism of DeepSpeed is active
 
-![image info](./different_levels_of_parallelism.png)
+![image info](./figures/different_levels_of_parallelism.png)
 
 Not that ZeRO optimization is not supported due to storing the preconditioning matrices. Future update will maybe support this.
 If there are more layers to precondition than number of available GPUs, the layers will be distributed accordingly to an own defined expected cost function.
