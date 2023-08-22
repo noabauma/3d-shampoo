@@ -15,6 +15,14 @@ The pseudocode of 3D-Shampoo is shown below
 
 ![image info](./3d-shampoo_pseudocode.png)
 
+3D-Shampoo will distributed the preconditioning matrices accordingly on the level of parallelism of DeepSpeed is active
+
+![image info](./different_levels_of_parallelism.png)
+
+Not that ZeRO optimization is not supported due to storing the preconditioning matrices. Future update will maybe support this.
+If there are more layers to precondition than number of available GPUs, the layers will be distributed accordingly to an own defined expected cost function.
+If there are more GPUs than layers, #GPU - #layers will idle during preconditioning.
+
 ## How to install and use
 
 Atm, you don't have to install it, you only need to link the folders to your python script.
