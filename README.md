@@ -19,8 +19,8 @@ The pseudocode of 3D-Shampoo is shown below
 
 ![image info](./figures/different_levels_of_parallelism.png)
 
-Not that ZeRO optimization is not supported due to storing the preconditioning matrices. Future update will maybe support this.
-If there are more layers to precondition than number of available GPUs, the layers will be distributed accordingly to an own defined expected cost function.
+NOTE: that ZeRO optimization is not supported due to storing the preconditioning matrices. Future update will maybe support this.
+If there are more layers to precondition than number of available GPUs, the layers will be distributed accordingly to an own defined expected cost function to balance to workload as good as possible across all the available GPUs.
 If there are more GPUs than layers, #GPU - #layers will idle during preconditioning.
 
 ## How to install and use
