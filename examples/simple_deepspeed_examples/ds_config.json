@@ -1,0 +1,7 @@
+{
+    "train_batch_size": 4,
+    "zero_optimization":{
+        "stage": 0
+    },
+    "zero_allow_untested_optimizer": true
+}
