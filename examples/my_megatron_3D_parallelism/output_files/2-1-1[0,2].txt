@@ -1,0 +1,198 @@
+{ProcessCoord(pipe=0, data=0, model=0): 0, ProcessCoord(pipe=0, data=1, model=0): 1}
+name;module;shape;partitioning_ranks;precs
+module.tied_modules.embed.word_embeddings;VocabParallelEmbedding();(50304, 1024);0;[]
+module.tied_modules.embed.position_embeddings;Embedding(1024, 1024);(1024, 1024);0;[]
+module.2.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.attention.query_key_value;ColumnParallelLinear();(3072, 1024);0;[torch.Size([3072, 3072]), torch.Size([1024, 1024])]
+module.2.attention.query_key_value;ColumnParallelLinear();(3072,);0;[]
+module.2.attention.dense;RowParallelLinear();(1024, 1024);0;[torch.Size([1024, 1024]), torch.Size([1024, 1024])]
+module.2.attention.dense;RowParallelLinear();(1024,);0;[]
+module.2.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);0;[torch.Size([4096, 4096]), torch.Size([1024, 1024])]
+module.2.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);0;[]
+module.2.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);0;[torch.Size([1024, 1024]), torch.Size([4096, 4096])]
+module.2.mlp.dense_4h_to_h;RowParallelLinear();(1024,);0;[]
+module.3.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.3.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.3.attention.query_key_value;ColumnParallelLinear();(3072, 1024);0;[torch.Size([3072, 3072]), torch.Size([1024, 1024])]
+module.3.attention.query_key_value;ColumnParallelLinear();(3072,);0;[]
+module.3.attention.dense;RowParallelLinear();(1024, 1024);0;[torch.Size([1024, 1024]), torch.Size([1024, 1024])]
+module.3.attention.dense;RowParallelLinear();(1024,);0;[]
+module.3.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.3.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.3.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);0;[torch.Size([4096, 4096]), torch.Size([1024, 1024])]
+module.3.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);0;[]
+module.3.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);0;[torch.Size([1024, 1024]), torch.Size([4096, 4096])]
+module.3.mlp.dense_4h_to_h;RowParallelLinear();(1024,);0;[]
+module.4.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.4.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.4.attention.query_key_value;ColumnParallelLinear();(3072, 1024);0;[torch.Size([3072, 3072]), torch.Size([1024, 1024])]
+module.4.attention.query_key_value;ColumnParallelLinear();(3072,);0;[]
+module.4.attention.dense;RowParallelLinear();(1024, 1024);0;[torch.Size([1024, 1024]), torch.Size([1024, 1024])]
+module.4.attention.dense;RowParallelLinear();(1024,);0;[]
+module.4.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.4.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.4.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);0;[torch.Size([4096, 4096]), torch.Size([1024, 1024])]
+module.4.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);0;[]
+module.4.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);0;[torch.Size([1024, 1024]), torch.Size([4096, 4096])]
+module.4.mlp.dense_4h_to_h;RowParallelLinear();(1024,);0;[]
+module.5.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.5.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.5.attention.query_key_value;ColumnParallelLinear();(3072, 1024);0;[torch.Size([3072, 3072]), torch.Size([1024, 1024])]
+module.5.attention.query_key_value;ColumnParallelLinear();(3072,);0;[]
+module.5.attention.dense;RowParallelLinear();(1024, 1024);0;[torch.Size([1024, 1024]), torch.Size([1024, 1024])]
+module.5.attention.dense;RowParallelLinear();(1024,);0;[]
+module.5.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.5.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.5.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);0;[torch.Size([4096, 4096]), torch.Size([1024, 1024])]
+module.5.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);0;[]
+module.5.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);0;[torch.Size([1024, 1024]), torch.Size([4096, 4096])]
+module.5.mlp.dense_4h_to_h;RowParallelLinear();(1024,);0;[]
+module.6.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.6.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.6.attention.query_key_value;ColumnParallelLinear();(3072, 1024);0;[torch.Size([3072, 3072]), torch.Size([1024, 1024])]
+module.6.attention.query_key_value;ColumnParallelLinear();(3072,);0;[]
+module.6.attention.dense;RowParallelLinear();(1024, 1024);0;[torch.Size([1024, 1024]), torch.Size([1024, 1024])]
+module.6.attention.dense;RowParallelLinear();(1024,);0;[]
+module.6.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.6.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.6.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);0;[torch.Size([4096, 4096]), torch.Size([1024, 1024])]
+module.6.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);0;[]
+module.6.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);0;[torch.Size([1024, 1024]), torch.Size([4096, 4096])]
+module.6.mlp.dense_4h_to_h;RowParallelLinear();(1024,);0;[]
+module.7.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.7.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.7.attention.query_key_value;ColumnParallelLinear();(3072, 1024);0;[torch.Size([3072, 3072]), torch.Size([1024, 1024])]
+module.7.attention.query_key_value;ColumnParallelLinear();(3072,);0;[]
+module.7.attention.dense;RowParallelLinear();(1024, 1024);0;[torch.Size([1024, 1024]), torch.Size([1024, 1024])]
+module.7.attention.dense;RowParallelLinear();(1024,);0;[]
+module.7.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.7.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.7.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);0;[torch.Size([4096, 4096]), torch.Size([1024, 1024])]
+module.7.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);0;[]
+module.7.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);0;[torch.Size([1024, 1024]), torch.Size([4096, 4096])]
+module.7.mlp.dense_4h_to_h;RowParallelLinear();(1024,);0;[]
+module.8.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.8.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.8.attention.query_key_value;ColumnParallelLinear();(3072, 1024);0;[torch.Size([3072, 3072]), torch.Size([1024, 1024])]
+module.8.attention.query_key_value;ColumnParallelLinear();(3072,);0;[]
+module.8.attention.dense;RowParallelLinear();(1024, 1024);0;[torch.Size([1024, 1024]), torch.Size([1024, 1024])]
+module.8.attention.dense;RowParallelLinear();(1024,);0;[]
+module.8.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.8.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.8.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);0;[torch.Size([4096, 4096]), torch.Size([1024, 1024])]
+module.8.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);0;[]
+module.8.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);0;[torch.Size([1024, 1024]), torch.Size([4096, 4096])]
+module.8.mlp.dense_4h_to_h;RowParallelLinear();(1024,);0;[]
+module.9.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.9.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.9.attention.query_key_value;ColumnParallelLinear();(3072, 1024);0;[torch.Size([3072, 3072]), torch.Size([1024, 1024])]
+module.9.attention.query_key_value;ColumnParallelLinear();(3072,);0;[]
+module.9.attention.dense;RowParallelLinear();(1024, 1024);0;[torch.Size([1024, 1024]), torch.Size([1024, 1024])]
+module.9.attention.dense;RowParallelLinear();(1024,);0;[]
+module.9.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.9.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.9.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);0;[torch.Size([4096, 4096]), torch.Size([1024, 1024])]
+module.9.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);0;[]
+module.9.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);0;[torch.Size([1024, 1024]), torch.Size([4096, 4096])]
+module.9.mlp.dense_4h_to_h;RowParallelLinear();(1024,);0;[]
+module.10.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.10.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.10.attention.query_key_value;ColumnParallelLinear();(3072, 1024);1;
+module.10.attention.query_key_value;ColumnParallelLinear();(3072,);1;
+module.10.attention.dense;RowParallelLinear();(1024, 1024);1;
+module.10.attention.dense;RowParallelLinear();(1024,);1;
+module.10.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.10.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.10.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);1;
+module.10.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);1;
+module.10.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);1;
+module.10.mlp.dense_4h_to_h;RowParallelLinear();(1024,);1;
+module.11.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.11.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.11.attention.query_key_value;ColumnParallelLinear();(3072, 1024);1;
+module.11.attention.query_key_value;ColumnParallelLinear();(3072,);1;
+module.11.attention.dense;RowParallelLinear();(1024, 1024);1;
+module.11.attention.dense;RowParallelLinear();(1024,);1;
+module.11.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.11.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.11.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);1;
+module.11.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);1;
+module.11.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);1;
+module.11.mlp.dense_4h_to_h;RowParallelLinear();(1024,);1;
+module.12.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.12.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.12.attention.query_key_value;ColumnParallelLinear();(3072, 1024);1;
+module.12.attention.query_key_value;ColumnParallelLinear();(3072,);1;
+module.12.attention.dense;RowParallelLinear();(1024, 1024);1;
+module.12.attention.dense;RowParallelLinear();(1024,);1;
+module.12.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.12.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.12.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);1;
+module.12.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);1;
+module.12.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);1;
+module.12.mlp.dense_4h_to_h;RowParallelLinear();(1024,);1;
+module.13.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.13.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.13.attention.query_key_value;ColumnParallelLinear();(3072, 1024);1;
+module.13.attention.query_key_value;ColumnParallelLinear();(3072,);1;
+module.13.attention.dense;RowParallelLinear();(1024, 1024);1;
+module.13.attention.dense;RowParallelLinear();(1024,);1;
+module.13.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.13.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.13.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);1;
+module.13.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);1;
+module.13.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);1;
+module.13.mlp.dense_4h_to_h;RowParallelLinear();(1024,);1;
+module.14.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.14.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.14.attention.query_key_value;ColumnParallelLinear();(3072, 1024);1;
+module.14.attention.query_key_value;ColumnParallelLinear();(3072,);1;
+module.14.attention.dense;RowParallelLinear();(1024, 1024);1;
+module.14.attention.dense;RowParallelLinear();(1024,);1;
+module.14.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.14.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.14.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);1;
+module.14.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);1;
+module.14.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);1;
+module.14.mlp.dense_4h_to_h;RowParallelLinear();(1024,);1;
+module.15.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.15.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.15.attention.query_key_value;ColumnParallelLinear();(3072, 1024);1;
+module.15.attention.query_key_value;ColumnParallelLinear();(3072,);1;
+module.15.attention.dense;RowParallelLinear();(1024, 1024);1;
+module.15.attention.dense;RowParallelLinear();(1024,);1;
+module.15.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.15.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.15.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);1;
+module.15.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);1;
+module.15.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);1;
+module.15.mlp.dense_4h_to_h;RowParallelLinear();(1024,);1;
+module.16.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.16.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.16.attention.query_key_value;ColumnParallelLinear();(3072, 1024);1;
+module.16.attention.query_key_value;ColumnParallelLinear();(3072,);1;
+module.16.attention.dense;RowParallelLinear();(1024, 1024);1;
+module.16.attention.dense;RowParallelLinear();(1024,);1;
+module.16.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.16.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.16.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);1;
+module.16.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);1;
+module.16.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);1;
+module.16.mlp.dense_4h_to_h;RowParallelLinear();(1024,);1;
+module.17.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.17.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.17.attention.query_key_value;ColumnParallelLinear();(3072, 1024);1;
+module.17.attention.query_key_value;ColumnParallelLinear();(3072,);1;
+module.17.attention.dense;RowParallelLinear();(1024, 1024);1;
+module.17.attention.dense;RowParallelLinear();(1024,);1;
+module.17.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.17.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.17.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);1;
+module.17.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);1;
+module.17.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);1;
+module.17.mlp.dense_4h_to_h;RowParallelLinear();(1024,);1;
+module.19;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.19;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;

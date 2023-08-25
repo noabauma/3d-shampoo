@@ -1,0 +1,9 @@
+name;module;shape
+module.tied_modules.embed.word_embeddings;VocabParallelEmbedding();(16768, 1536)
+module.tied_modules.embed.position_embeddings;Embedding(1024, 1536);(1024, 1536)
+module.2.input_layernorm;FusedLayerNorm(torch.Size([1536]), eps=1e-05, elementwise_affine=True);(1536,)
+module.2.attention.query_key_value;ColumnParallelLinear();(1536, 1536)
+module.2.attention.dense;RowParallelLinear();(1536, 512)
+module.2.post_attention_layernorm;FusedLayerNorm(torch.Size([1536]), eps=1e-05, elementwise_affine=True);(1536,)
+module.2.mlp.dense_h_to_4h;ColumnParallelLinear();(2048, 1536)
+module.2.mlp.dense_4h_to_h;RowParallelLinear();(1536, 2048)

@@ -1,0 +1,28 @@
+{ProcessCoord(pipe=0, data=0, model=0): 0, ProcessCoord(pipe=0, data=1, model=0): 1, ProcessCoord(pipe=1, data=0, model=0): 2, ProcessCoord(pipe=1, data=1, model=0): 3, ProcessCoord(pipe=2, data=0, model=0): 4, ProcessCoord(pipe=2, data=1, model=0): 5, ProcessCoord(pipe=3, data=0, model=0): 6, ProcessCoord(pipe=3, data=1, model=0): 7}
+name;module;shape;partitioning_ranks;prec_matrices
+module.tied_modules.embed.word_embeddings;VocabParallelEmbedding();(50304, 1024);0;[]
+module.tied_modules.embed.position_embeddings;Embedding(1024, 1024);(1024, 1024);0;[]
+module.2.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.attention.query_key_value;ColumnParallelLinear();(3072, 1024);0;[torch.Size([384, 384]), torch.Size([1024, 1024]), torch.Size([384, 384]), torch.Size([1024, 1024]), torch.Size([384, 384]), torch.Size([1024, 1024]), torch.Size([384, 384]), torch.Size([1024, 1024]), torch.Size([384, 384]), torch.Size([1024, 1024]), torch.Size([384, 384]), torch.Size([1024, 1024]), torch.Size([384, 384]), torch.Size([1024, 1024]), torch.Size([384, 384]), torch.Size([1024, 1024])]
+module.2.attention.query_key_value;ColumnParallelLinear();(3072,);0;[]
+module.2.attention.dense;RowParallelLinear();(1024, 1024);0;[torch.Size([1024, 1024]), torch.Size([128, 128]), torch.Size([1024, 1024]), torch.Size([128, 128]), torch.Size([1024, 1024]), torch.Size([128, 128]), torch.Size([1024, 1024]), torch.Size([128, 128]), torch.Size([1024, 1024]), torch.Size([128, 128]), torch.Size([1024, 1024]), torch.Size([128, 128]), torch.Size([1024, 1024]), torch.Size([128, 128]), torch.Size([1024, 1024]), torch.Size([128, 128])]
+module.2.attention.dense;RowParallelLinear();(1024,);0;[]
+module.2.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);0;[torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024])]
+module.2.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);0;[]
+module.2.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);0;[torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512]), torch.Size([1024, 1024]), torch.Size([512, 512])]
+module.2.mlp.dense_4h_to_h;RowParallelLinear();(1024,);0;[]
+module.3.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.3.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.3.attention.query_key_value;ColumnParallelLinear();(3072, 1024);1;
+module.3.attention.query_key_value;ColumnParallelLinear();(3072,);1;
+module.3.attention.dense;RowParallelLinear();(1024, 1024);1;
+module.3.attention.dense;RowParallelLinear();(1024,);1;
+module.3.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.3.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.3.mlp.dense_h_to_4h;ColumnParallelLinear();(4096, 1024);1;
+module.3.mlp.dense_h_to_4h;ColumnParallelLinear();(4096,);1;
+module.3.mlp.dense_4h_to_h;RowParallelLinear();(1024, 4096);1;
+module.3.mlp.dense_4h_to_h;RowParallelLinear();(1024,);1;

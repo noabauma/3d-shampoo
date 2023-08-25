@@ -1,0 +1,6 @@
+libibverbs: Could not locate libibgni (/usr/lib64/libibgni.so.1: undefined symbol: verbs_uninit_context)
+libibverbs: Warning: couldn't open config directory '/opt/cray/rdma-core/27.1-7.0.3.1_4.6__g4beae6eb.ari/etc/libibverbs.d'.
+Traceback (most recent call last):
+  File "/users/bnoahand/noah_workspace/thesis_master/3d_parallelism/my_megatron_3D_parallelism/megatron_3D.py", line 299, in <module>
+    assert cnt_precs == 64, f"number of prec matrices should be 64 but got {cnt_precs} for all parallelism"
+AssertionError: number of prec matrices should be 64 but got 6144 for all parallelism

@@ -1,0 +1,7 @@
+name;module;shape
+module.3.input_layernorm;FusedLayerNorm(torch.Size([1536]), eps=1e-05, elementwise_affine=True);(1536,)
+module.3.attention.query_key_value;ColumnParallelLinear();(1536, 1536)
+module.3.attention.dense;RowParallelLinear();(1536, 512)
+module.3.post_attention_layernorm;FusedLayerNorm(torch.Size([1536]), eps=1e-05, elementwise_affine=True);(1536,)
+module.3.mlp.dense_h_to_4h;ColumnParallelLinear();(2048, 1536)
+module.3.mlp.dense_4h_to_h;RowParallelLinear();(1536, 2048)

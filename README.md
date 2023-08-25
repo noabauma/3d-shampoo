@@ -51,7 +51,7 @@ optimizer = shampoo_3d.Shampoo_3D(params=model.parameters(),
                                   shapes=[tuple(p.shape) for p in model.parameters() if p.requires_grad], 
                                   lr=1e-1, 
                                   momentum=0.9, 
-                                  hyperparams=shampoo.ShampooHyperParams(ignore_embedding_layer=True))
+                                  hyperparams=shampoo_3d.ShampooHyperParams(ignore_embedding_layer=True))
 							
 model_engine, optimizer, _, _ = deepspeed.initialize(args=cmd_args,
                                                      model=model,
