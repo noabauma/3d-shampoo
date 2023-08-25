@@ -347,7 +347,7 @@ PRECONDITIONER = 'preconditioner'
 GRAFT = 'graft'
 
 
-class Shampoo(optim.Optimizer):
+class Shampoo_3D(optim.Optimizer):
   """The Shampoo optimizer."""
 
   def __init__(self,
@@ -437,54 +437,6 @@ class Shampoo(optim.Optimizer):
     else:
       self.splits, self.partitioned_modules = self.get_distr_prec_partition()
 
-    """
-    for i in range(world_size):
-      if i == world_rank:
-        print("@splits and partioning ", world_rank, ", ", self.splits, "\n", self.partitioned_modules, flush=True)
-      dist.barrier()
-    """
-
-    """
-    # no longer needed
-    # lets make self.shape smaller according to the number of data parallelism if ZeRO_stage >= 1 is active
-    if (self.zero_stage > 0) and (self.dp_groups is not None):
-      dp_dim = self.topology.get_dim('data')
-      total_numel = 0
-      for shape in self.shapes:
-        numel = 1
-        for s in shape:
-          numel *= s
-        total_numel += numel
-
-      assert total_numel % dp_dim == 0, f"Not even {total_numel} splittable by the {dp_dim}."
-
-      subtotal_numel = total_numel // dp_dim
-      
-      sub_shapes = []
-      sub_shape = []
-      sub_numel = 0
-      for shape in self.shapes:
-        numel = 1
-        for s in shape:
-          numel *= s
-        sub_numel += numel
-        sub_shape.append(shape)
-        # if the split is possible, add it to the sub_shapes list and restart until all shapes are done
-        if sub_numel == subtotal_numel:
-          sub_shapes.append(sub_shape)
-          sub_shape = []
-          sub_numel = 0
-        elif sub_numel > subtotal_numel:
-          raise RuntimeError(f"This model is not splittable by layers with the given DP dimension: {dp_dim}!")
-
-      # let's find which GPU has which sub_shape list
-      for comm_list in self.data_comm_lists:
-        if self.world_rank in comm_list:
-          idx = comm_list.index(self.world_rank)
-          break
-
-      self.shapes = sub_shapes[idx]
-    """
 
         
   def get_distr_prec_partition_gpt2(self):
@@ -545,11 +497,6 @@ class Shampoo(optim.Optimizer):
     assert len(np.unique(layers_reindexed)) - 1 == len(split_list), f"they do not match {layers_reindexed} {split_list}"
 
     return split_list, layers_reindexed
-
-    
-
-
-
 
 
 
@@ -684,7 +631,6 @@ class Shampoo(optim.Optimizer):
 
     split_loc = len(x[np.cumsum(x) < y])
 
-    #if split_loc == 0:  # for resnet and densenet, this is really good
     split_loc += 1
     
     return split_loc
@@ -706,39 +652,18 @@ class Shampoo(optim.Optimizer):
     hps = self.hps
     for group in self.param_groups:
       lr = group['lr']
-      #print("shapes: ", [p.grad for p in group['params']], flush=True)
-      if len(group['params']) == 1 and group['params'][0].ndim == 1: # when ZeRO stage >=1 is active
 
-        assert self.zero_stage > 0
-        
-        vec = group['params'][0]
-        device = vec.get_device()
-        params = []
-        grads = []
-        check_numel = 0
-        for shape in self.shapes:
-          params.append(torch.empty(shape, dtype=torch.float32).to(device))
-          grads.append(torch.empty(shape, dtype=torch.float32).to(device))
-
-          numel = 1
-          for s in shape:
-            numel *= s
-          check_numel += numel
-
-        assert vec.numel() == check_numel, f"Not identical number of elements of the packed tensor: {vec.numel()} and number of elements of shapes: {check_numel}, shapes: {self.shapes}"
-
-        vector_to_parameters(vec.grad, grads)
-        vector_to_parameters(vec, params)
-
-        torch.cuda.empty_cache()
-
-        for p, grad in zip(params, grads):
-          if grad is None: continue
+      self.precs = []
+      assert (self.dp_groups is None) or (len(group['params']) == len(self.partitioned_modules))
+      for enum, p in enumerate(group['params']):
+        if (self.dp_groups is None) or (self.world_rank == self.comm_list[self.partitioned_modules[enum]]):
+          if p.grad is None: continue
+          grad = p.grad.data
           if grad.is_sparse:
             raise RuntimeError('Shampoo does not support sparse yet')
           state = self.state[p]
           if not state:
-            self.init_var_state(p, state)
+            self.init_var_state(enum, p, state)
           state[STEP] += 1
 
           preconditioner = state[PRECONDITIONER]
@@ -784,79 +709,8 @@ class Shampoo(optim.Optimizer):
           # Final update
           p.data.add_(momentum_update, alpha=-lr)
 
-        #vec.grads = parameters_to_vector(grads)
-        #vec       = parameters_to_vector(params)
+          self.precs.append([prec.shape for prec in preconditioner.preconditioners])
 
-        torch.cuda.empty_cache()
-
-      else:
-        self.precs = []
-        assert (self.dp_groups is None) or (len(group['params']) == len(self.partitioned_modules))
-        for enum, p in enumerate(group['params']):
-          if (self.dp_groups is None) or (self.world_rank == self.comm_list[self.partitioned_modules[enum]]):
-            if p.grad is None: continue
-            grad = p.grad.data
-            if grad.is_sparse:
-              raise RuntimeError('Shampoo does not support sparse yet')
-            state = self.state[p]
-            if not state:
-              self.init_var_state(enum, p, state)
-            state[STEP] += 1
-
-            preconditioner = state[PRECONDITIONER]
-            graft = state[GRAFT]
-
-            # Gather statistics, compute preconditioners
-            graft.add_statistics(grad)
-            if state[STEP] % hps.statistics_compute_steps == 0:
-              preconditioner.add_statistics(grad)
-            if state[STEP] % hps.preconditioning_compute_steps == 0:
-              preconditioner.compute_preconditioners()
-
-            # Precondition gradients
-            graft_grad = graft.precondition_gradient(grad)
-            shampoo_grad = grad
-            if state[STEP] >= self.hps.start_preconditioning_step:
-              shampoo_grad = preconditioner.preconditioned_grad(grad)
-
-            # Grafting
-            graft_norm = torch.norm(graft_grad)
-            shampoo_norm = torch.norm(shampoo_grad)
-            shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
-
-            # Weight decay
-            if self.hps.weight_decay != 0.0:
-              shampoo_grad.add_(p.data, alpha=self.hps.weight_decay)
-              graft_grad.add_(p.data, alpha=self.hps.weight_decay)
-
-            # Momentum and Nesterov momentum, if needed
-            state[MOMENTUM].mul_(group['momentum']).add_(shampoo_grad)
-            graft_momentum = graft.update_momentum(grad, group['momentum'])
-
-            if state[STEP] >= self.hps.start_preconditioning_step:
-              momentum_update = state[MOMENTUM]
-              wd_update = shampoo_grad
-            else:
-              momentum_update = graft_momentum
-              wd_update = graft_grad
-
-            if hps.nesterov:
-              momentum_update.mul_(group['momentum']).add_(wd_update)
-
-            # Final update
-            p.data.add_(momentum_update, alpha=-lr)
-
-            self.precs.append([prec.shape for prec in preconditioner.preconditioners])
-            #precs.append([prec.shape for prec in preconditioner.preconditioners])
-            #print("preconditioners: ", [prec.shape for prec in preconditioner.preconditioners])
-            #print("grads: ", [p.grad for p in group['params']])
-            """
-            if self.mp_dim > 1:
-              for i in range(self.world_size):
-                if i == self.world_rank:
-                  print("preconditioners: ", [(prec.shape, prec) for prec in preconditioner.preconditioners], flush=True)
-                  dist.barrier()
-            """
 
         # broadcast those parameters back to the other DP group if it exists (only needed for ZeRO_stage == 0)
         if self.dp_groups is not None:
@@ -886,8 +740,7 @@ class Shampoo(optim.Optimizer):
             if self.world_rank in comm_list:
               handler_list = []
               for i in range(len(tensor_list)):
-                handler = dist.broadcast(tensor_list[i], comm_list[i], group=self.dp_groups[enum], async_op=True) # maybe don't async? It's dangerous for multiple groups in nccl
-                # TODO: maybe all_gather if gpt2
+                handler = dist.broadcast(tensor_list[i], comm_list[i], group=self.dp_groups[enum], async_op=True)
                 
                 handler_list.append(handler)
 
@@ -896,13 +749,3 @@ class Shampoo(optim.Optimizer):
 
           for i in range(len(tensor_list)): # all GPUs unpack the new gotten params
             vector_to_parameters(tensor_list[i], params_list[i])
-
-        
-        """
-        for i in range(self.world_size):
-          if i == self.world_rank:
-            print("@topology: ", self.topology, [p.shape for p in group['params']], precs, self.partitioned_modules, self.world_rank, self.world_size, self.hps.ignore_embedding_layer, flush=True)
-          dist.barrier()
-        """
-        
-        

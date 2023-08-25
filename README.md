@@ -39,19 +39,19 @@ import deepspeed
 # loading 3d-shampoo optimizer
 import sys
 sys.path.append('../3d-shampoo/src/')
-import shampoo
+import shampoo_3d
 
 # initialize torch.distributed, define model, load datasets, etc.
 ...
 
-optimizer = shampoo.Shampoo(params=model.parameters(),
-                            world_rank=world_rank,
-                            world_size=world_size,
-                            topology=model.topology(), 
-                            shapes=[tuple(p.shape) for p in model.parameters() if p.requires_grad], 
-                            lr=1e-1, 
-                            momentum=0.9, 
-                            hyperparams=shampoo.ShampooHyperParams(ignore_embedding_layer=True))
+optimizer = shampoo_3d.Shampoo_3D(params=model.parameters(),
+                                  world_rank=world_rank,
+                                  world_size=world_size,
+                                  topology=model.topology(), 
+                                  shapes=[tuple(p.shape) for p in model.parameters() if p.requires_grad], 
+                                  lr=1e-1, 
+                                  momentum=0.9, 
+                                  hyperparams=shampoo.ShampooHyperParams(ignore_embedding_layer=True))
 							
 model_engine, optimizer, _, _ = deepspeed.initialize(args=cmd_args,
                                                      model=model,
