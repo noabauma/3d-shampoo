@@ -1,0 +1,10 @@
+{ProcessCoord(pipe=0, data=0, model=0): 0, ProcessCoord(pipe=0, data=0, model=1): 1, ProcessCoord(pipe=0, data=0, model=2): 2, ProcessCoord(pipe=0, data=0, model=3): 3, ProcessCoord(pipe=0, data=1, model=0): 4, ProcessCoord(pipe=0, data=1, model=1): 5, ProcessCoord(pipe=0, data=1, model=2): 6, ProcessCoord(pipe=0, data=1, model=3): 7, ProcessCoord(pipe=1, data=0, model=0): 8, ProcessCoord(pipe=1, data=0, model=1): 9, ProcessCoord(pipe=1, data=0, model=2): 10, ProcessCoord(pipe=1, data=0, model=3): 11, ProcessCoord(pipe=1, data=1, model=0): 12, ProcessCoord(pipe=1, data=1, model=1): 13, ProcessCoord(pipe=1, data=1, model=2): 14, ProcessCoord(pipe=1, data=1, model=3): 15, ProcessCoord(pipe=2, data=0, model=0): 16, ProcessCoord(pipe=2, data=0, model=1): 17, ProcessCoord(pipe=2, data=0, model=2): 18, ProcessCoord(pipe=2, data=0, model=3): 19, ProcessCoord(pipe=2, data=1, model=0): 20, ProcessCoord(pipe=2, data=1, model=1): 21, ProcessCoord(pipe=2, data=1, model=2): 22, ProcessCoord(pipe=2, data=1, model=3): 23, ProcessCoord(pipe=3, data=0, model=0): 24, ProcessCoord(pipe=3, data=0, model=1): 25, ProcessCoord(pipe=3, data=0, model=2): 26, ProcessCoord(pipe=3, data=0, model=3): 27, ProcessCoord(pipe=3, data=1, model=0): 28, ProcessCoord(pipe=3, data=1, model=1): 29, ProcessCoord(pipe=3, data=1, model=2): 30, ProcessCoord(pipe=3, data=1, model=3): 31}
+name;module;shape
+module.tied_modules.embed.word_embeddings;VocabParallelEmbedding();(12672, 1024)
+module.tied_modules.embed.position_embeddings;Embedding(1024, 1024);(1024, 1024)
+module.2.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,)
+module.2.attention.query_key_value;ColumnParallelLinear();(768, 1024)
+module.2.attention.dense;RowParallelLinear();(1024, 256)
+module.2.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,)
+module.2.mlp.dense_h_to_4h;ColumnParallelLinear();(1024, 1024)
+module.2.mlp.dense_4h_to_h;RowParallelLinear();(1024, 1024)

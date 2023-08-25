@@ -1,0 +1,10 @@
+{ProcessCoord(pipe=0, data=0, model=0): 0, ProcessCoord(pipe=0, data=0, model=1): 1, ProcessCoord(pipe=0, data=0, model=2): 2, ProcessCoord(pipe=0, data=1, model=0): 3, ProcessCoord(pipe=0, data=1, model=1): 4, ProcessCoord(pipe=0, data=1, model=2): 5, ProcessCoord(pipe=0, data=2, model=0): 6, ProcessCoord(pipe=0, data=2, model=1): 7, ProcessCoord(pipe=0, data=2, model=2): 8, ProcessCoord(pipe=1, data=0, model=0): 9, ProcessCoord(pipe=1, data=0, model=1): 10, ProcessCoord(pipe=1, data=0, model=2): 11, ProcessCoord(pipe=1, data=1, model=0): 12, ProcessCoord(pipe=1, data=1, model=1): 13, ProcessCoord(pipe=1, data=1, model=2): 14, ProcessCoord(pipe=1, data=2, model=0): 15, ProcessCoord(pipe=1, data=2, model=1): 16, ProcessCoord(pipe=1, data=2, model=2): 17, ProcessCoord(pipe=2, data=0, model=0): 18, ProcessCoord(pipe=2, data=0, model=1): 19, ProcessCoord(pipe=2, data=0, model=2): 20, ProcessCoord(pipe=2, data=1, model=0): 21, ProcessCoord(pipe=2, data=1, model=1): 22, ProcessCoord(pipe=2, data=1, model=2): 23, ProcessCoord(pipe=2, data=2, model=0): 24, ProcessCoord(pipe=2, data=2, model=1): 25, ProcessCoord(pipe=2, data=2, model=2): 26}
+name;module;shape
+module.tied_modules.embed.word_embeddings;VocabParallelEmbedding();(16768, 1536)
+module.tied_modules.embed.position_embeddings;Embedding(1024, 1536);(1024, 1536)
+module.2.input_layernorm;FusedLayerNorm(torch.Size([1536]), eps=1e-05, elementwise_affine=True);(1536,)
+module.2.attention.query_key_value;ColumnParallelLinear();(1536, 1536)
+module.2.attention.dense;RowParallelLinear();(1536, 512)
+module.2.post_attention_layernorm;FusedLayerNorm(torch.Size([1536]), eps=1e-05, elementwise_affine=True);(1536,)
+module.2.mlp.dense_h_to_4h;ColumnParallelLinear();(2048, 1536)
+module.2.mlp.dense_4h_to_h;RowParallelLinear();(1536, 2048)

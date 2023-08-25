@@ -1,0 +1,29 @@
+name;module;shape;partitioning_ranks;precs
+module.tied_modules.embed.word_embeddings;VocabParallelEmbedding();(25216, 1024);0;[]
+module.tied_modules.embed.position_embeddings;Embedding(1024, 1024);(1024, 1024);0;[]
+module.2.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.attention.query_key_value;ColumnParallelLinear();(1536, 1024);0;[torch.Size([768, 768]), torch.Size([1024, 1024]), torch.Size([768, 768]), torch.Size([1024, 1024])]
+module.2.attention.query_key_value;ColumnParallelLinear();(1536,);0;[]
+module.2.attention.dense;RowParallelLinear();(1024, 512);0;[torch.Size([1024, 1024]), torch.Size([256, 256]), torch.Size([1024, 1024]), torch.Size([256, 256])]
+module.2.attention.dense;RowParallelLinear();(1024,);0;[]
+module.2.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);0;[]
+module.2.mlp.dense_h_to_4h;ColumnParallelLinear();(2048, 1024);0;[torch.Size([1024, 1024]), torch.Size([1024, 1024]), torch.Size([1024, 1024]), torch.Size([1024, 1024])]
+module.2.mlp.dense_h_to_4h;ColumnParallelLinear();(2048,);0;[]
+module.2.mlp.dense_4h_to_h;RowParallelLinear();(1024, 2048);0;[torch.Size([1024, 1024]), torch.Size([1024, 1024]), torch.Size([1024, 1024]), torch.Size([1024, 1024])]
+module.2.mlp.dense_4h_to_h;RowParallelLinear();(1024,);0;[]
+module.3.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.3.input_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.3.attention.query_key_value;ColumnParallelLinear();(1536, 1024);1;
+module.3.attention.query_key_value;ColumnParallelLinear();(1536,);1;
+module.3.attention.dense;RowParallelLinear();(1024, 512);1;
+module.3.attention.dense;RowParallelLinear();(1024,);1;
+module.3.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.3.post_attention_layernorm;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.3.mlp.dense_h_to_4h;ColumnParallelLinear();(2048, 1024);1;
+module.3.mlp.dense_h_to_4h;ColumnParallelLinear();(2048,);1;
+module.3.mlp.dense_4h_to_h;RowParallelLinear();(1024, 2048);1;
+module.3.mlp.dense_4h_to_h;RowParallelLinear();(1024,);1;
+module.5;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
+module.5;FusedLayerNorm(torch.Size([1024]), eps=1e-05, elementwise_affine=True);(1024,);1;
