@@ -28,15 +28,17 @@ def PowerIter(mat_g, error_tolerance=1e-6, num_iters=100, fix_iter=False):
     mat_g: the symmetric PSD matrix.
     error_tolerance: Iterative exit condition.
     num_iters: Number of iterations.
+    fix_iter: if True, always run num_iters iterations (no early exit).
 
   Returns:
-    eigen vector, eigen value, num_iters
+    eigen value, eigen vector, num_iters
   """
-  v = torch.rand(list(mat_g.shape)[0], device=mat_g.get_device()) * 2 - 1
+  v = torch.rand(list(mat_g.shape)[0],
+                 device=mat_g.device, dtype=mat_g.dtype) * 2 - 1
   error = 1
   iters = 0
   singular_val = 0
-  while (error > error_tolerance and iters < num_iters) or (iters < num_iters and fix_iter):
+  while iters < num_iters and (error > error_tolerance or fix_iter):
     v = v / torch.norm(v)
     mat_v = torch.mv(mat_g, v)
     s_v = torch.dot(v, mat_v)
@@ -102,13 +104,14 @@ def ComputePower(mat_g, p,
   shape = list(mat_g.shape)
   if len(shape) == 1:
     return torch.pow(mat_g + ridge_epsilon, -1/p)
-  identity = torch.eye(shape[0], device=mat_g.get_device())
+  identity = torch.eye(shape[0], device=mat_g.device, dtype=mat_g.dtype)
   if shape[0] == 1:
     return identity
   alpha = -1.0/p
   max_ev, _, _ = PowerIter(mat_g, num_iters=iter_count, fix_iter=fix_iter)
   ridge_epsilon *= max_ev
-  mat_g += ridge_epsilon * identity
+  # do not modify mat_g in place: the caller keeps accumulating statistics in it
+  mat_g = mat_g + ridge_epsilon * identity
   z = (1 + p) / (2 * torch.norm(mat_g))
   # The best value for z is
   # (1 + p) * (c_max^{1/p} - c_min^{1/p}) /
@@ -127,7 +130,7 @@ def ComputePower(mat_g, p,
   mat_m = mat_g * z
   error = torch.max(torch.abs(mat_m - identity))
   count = 0
-  while (error > error_tolerance and count < iter_count) or (count < iter_count and fix_iter):
+  while count < iter_count and (error > error_tolerance or fix_iter):
     tmp_mat_m = (1 - alpha) * identity + alpha * mat_m
     new_mat_root = torch.matmul(mat_root, tmp_mat_m)
     mat_m = torch.matmul(MatPower(tmp_mat_m, p), mat_m)

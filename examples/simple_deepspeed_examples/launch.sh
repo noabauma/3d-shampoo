@@ -1,17 +1,13 @@
-#!/bin/bash -l
+#!/bin/bash
+# Run the examples on all locally available GPUs.
+#
+# On a SLURM cluster, submit the same commands with srun instead
+# (see the git history for the original Piz Daint job script).
 
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=1
-#SBATCH --output=slurm_output.txt
-#SBATCH --error=slurm_error.txt
-#SBATCH --constraint=gpu
-#SBATCH --partition=debug
-#SBATCH --time=00:02:00
-#SBATCH --account=g34
+set -e
 
-export MASTER_ADDR=$(hostname)
-export MASTER_PORT=1234
+# data parallelism only
+deepspeed ds_no_pp.py --deepspeed_config ds_config.json
 
-srun python ds_pp.py --deepspeed_config ds_config.json
+# pipeline parallelism; with N GPUs and S stages you get N/S data-parallel replicas
+deepspeed ds_pp.py --deepspeed_config ds_config.json --stages 1

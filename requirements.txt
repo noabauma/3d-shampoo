@@ -1,0 +1,6 @@
+# core optimizer
+torch>=2.0
+numpy
+
+# needed for the distributed (3D) features and the examples
+deepspeed>=0.14

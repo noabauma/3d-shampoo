@@ -1,74 +1,47 @@
-import os
+"""3D-Shampoo with DeepSpeed data parallelism (no pipeline).
+
+A plain model (no PipelineModule) has no DeepSpeed topology, so we build a
+pure data-parallel topology by hand and give it to the optimizer. Every rank
+then preconditions only its share of the layers and receives the remaining
+updated parameters from the other ranks.
+
+Run with:
+    deepspeed ds_no_pp.py --deepspeed_config ds_config.json
+"""
+
 import argparse
+import os
+import sys
 from collections import OrderedDict
 
 import torch
 import torch.distributed as dist
-
-
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
 
-
 import deepspeed
+from deepspeed.runtime.pipe.topology import PipeDataParallelTopology
 
-from deepspeed.profiling.flops_profiler import get_model_profile
+# loading the 3d-shampoo optimizer
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'src'))
+import shampoo_3d
 
 torch.manual_seed(42)
 
 
-def init_dist_process_group(backend='nccl'):
-    if os.environ.get('LOCAL_RANK', None) is not None:
-        local_rank = int(os.environ['LOCAL_RANK'])
-        world_rank = int(os.environ['RANK'])
-        world_size = int(os.environ['WORLD_SIZE'])
-        local_size = int(os.environ.get('LOCAL_SIZE', world_size))
-    elif os.environ.get('SLURM_JOBID', None) is not None:
-        local_rank = int(os.environ['SLURM_LOCALID'])
-        world_rank = int(os.environ['SLURM_PROCID'])
-        world_size = int(os.environ['SLURM_NTASKS'])
-        local_size = int(os.environ['SLURM_NTASKS_PER_NODE'])
-    else:
-        local_rank = 0
-        world_rank = 0
-        world_size = 1
-        local_size = 1
-
-    if world_size > 1:
-        assert dist.is_available()
-
-        deepspeed.init_distributed(dist_backend=backend)
-
-        assert dist.get_rank() == world_rank
-        assert dist.get_world_size() == world_size
-
-    return local_rank, local_size, world_rank, world_size
-
-
 def main():
-    local_rank, local_size, world_rank, world_size = init_dist_process_group()
-
-    # only needed for Barry (multi GPU on one node)
-    if local_size == world_size:
-        torch.cuda.set_device(local_rank)
-
-    node = os.environ.get('SLURMD_NODENAME', local_rank)
-
-    print(f"Hello I am node: {node}, with world_rank {world_rank}, local_rank {local_rank} and world_size {world_size}")
-
-    parser = argparse.ArgumentParser(description='My training script.')
-    parser.add_argument('--local_rank', type=int, default=world_rank,
+    parser = argparse.ArgumentParser(description='DeepSpeed data parallelism with 3D-Shampoo.')
+    parser.add_argument('--local_rank', type=int, default=0,
                         help='local rank passed from distributed launcher')
-    # Include DeepSpeed configuration arguments
+    parser.add_argument('--steps', type=int, default=20)
     parser = deepspeed.add_config_arguments(parser)
     cmd_args = parser.parse_args()
 
-    print("cmd_args: ", cmd_args)
+    deepspeed.init_distributed()
+    world_rank = dist.get_rank()
+    world_size = dist.get_world_size()
 
-    batchsize = 2
-
-    hidden_dim = 3
+    hidden_dim = 8
     model = nn.Sequential(OrderedDict([
         ('flatten', nn.Flatten()),
         ('fc1', nn.Linear(4, hidden_dim)),
@@ -79,52 +52,40 @@ def main():
         ('relu3', nn.ReLU()),
         ('fc4', nn.Linear(hidden_dim, 2)),
     ]))
-        
-    
+
+    # without a pipeline every rank is a pure data-parallel worker
+    topology = PipeDataParallelTopology(num_pp=1, num_dp=world_size) if world_size > 1 else None
+
+    optimizer = shampoo_3d.Shampoo_3D(params=model.parameters(),
+                                      world_rank=world_rank,
+                                      world_size=world_size,
+                                      topology=topology,
+                                      lr=1e-1,
+                                      momentum=0.9)
+
+    if world_rank == 0:
+        print("preconditioning ranks per parameter:", optimizer.partitioned_modules)
+
     model_engine, optimizer, _, _ = deepspeed.initialize(args=cmd_args,
                                                          model=model,
-                                                        )
+                                                         optimizer=optimizer)
 
+    # a fixed toy regression batch (different on every rank)
+    batchsize = model_engine.train_micro_batch_size_per_gpu()
+    generator = torch.Generator().manual_seed(world_rank)
+    x = torch.rand(batchsize, 2, 2, generator=generator).to(model_engine.device)
+    t = torch.rand(batchsize, 2, generator=generator).to(model_engine.device)
 
-    #param_shapes = [p.shape for p in model_engine.parameters()]
-    #print(param_shapes, "\n")
-
-    for step in range(1):  #two epochs for nsys
-        x = torch.rand(batchsize,2,2).cuda() + world_rank
-        t = torch.rand(batchsize, 2).cuda()
-        batch = (x, t)
-
-
-        print("grads before:\n", [p.grad for p in model_engine.parameters()], "\n")
-        
-        #forward() method
+    for step in range(cmd_args.steps):
         y = model_engine(x)
-
         loss = F.mse_loss(y, t)
 
-        #runs backpropagation
         model_engine.backward(loss)
-
-        print("grads after:\n", [p.grad for p in model_engine.parameters()], "\n")
-
-        #weight update
         model_engine.step()
 
-    """
-    flops, macs, params = get_model_profile(model=model_engine, # model
-                                    input_shape=(batchsize, 2,2), # input shape to the model. If specified, the model takes a tensor with this shape as the only positional argument.
-                                    args=None, # list of positional arguments to the model.
-                                    kwargs=None, # dictionary of keyword arguments to the model.
-                                    print_profile=True, # prints the model graph with the measured profile attached to each module
-                                    detailed=True, # print the detailed profile
-                                    module_depth=-1, # depth into the nested modules, with -1 being the inner most modules
-                                    top_modules=1, # the number of top modules to print aggregated profile
-                                    warm_up=1, # the number of warm-ups before measuring the time of each module
-                                    as_string=True, # print raw numbers (e.g. 1000) or as human-readable strings (e.g. 1k)
-                                    output_file=None, # path to the output file. If None, the profiler prints to stdout.
-                                    ignore_modules=None) # the list of modules to ignore in the profiling
-    """
-    
+        if world_rank == 0 and (step % 5 == 0 or step == cmd_args.steps - 1):
+            print(f"step {step:3d}  loss {loss.item():.6f}")
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()

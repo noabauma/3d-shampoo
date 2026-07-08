@@ -173,20 +173,22 @@ def get_optimizer(model):
     #args.shampoo = True #else torch.optim.SGD as control 
 
     if args.shampoo:
-        # loading shampoo optimizer
+        # loading the 3d-shampoo optimizer
+        import os
         import sys
-        sys.path.append('/users/bnoahand/noah_workspace/thesis_master/shampoo_optimizer')
-        import shampoo
+        sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                     '..', '..', '..', 'src'))
+        import shampoo_3d
 
         named_modules = []
         for name, module in model.named_modules():
             if hasattr(module, 'weight'):
                 named_modules.append((name, module))
-                
+
             if hasattr(module, 'bias'):
                 named_modules.append((name, module))
 
-        hyperparams = shampoo.ShampooHyperParams(
+        hyperparams = shampoo_3d.ShampooHyperParams(
             named_modules = named_modules,
             best_effort_shape_interpretation=False,
             block_size=64,
@@ -195,17 +197,17 @@ def get_optimizer(model):
             num_iter=20
         )
 
-        optimizer = shampoo.Shampoo(params=model.parameters(),
-                                    world_rank=dist.get_rank(),
-                                    world_size=dist.get_world_size(),
-                                    topology=model.topology(), 
-                                    shapes=[tuple(p.shape) for p in model.parameters() if p.requires_grad], 
-                                    zero_stage=args.zero_stage,
-                                    gpt2_partitioning=True,
-                                    gpt2_nlayers=args.num_layers,
-                                    lr=args.lr, 
-                                    momentum=0.9, 
-                                    hyperparams=hyperparams)
+        optimizer = shampoo_3d.Shampoo_3D(params=model.parameters(),
+                                          world_rank=dist.get_rank(),
+                                          world_size=dist.get_world_size(),
+                                          topology=model.topology(),
+                                          shapes=[tuple(p.shape) for p in model.parameters() if p.requires_grad],
+                                          zero_stage=args.zero_stage,
+                                          gpt2_partitioning=True,
+                                          gpt2_nlayers=args.num_layers,
+                                          lr=args.lr,
+                                          momentum=0.9,
+                                          hyperparams=hyperparams)
         return optimizer
     else:
         optimizer = torch.optim.SGD(params=model.parameters(),lr=args.lr)

@@ -13,7 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Pytorch implementation of Shampoo."""
+"""PyTorch implementation of 3D-Shampoo.
+
+Modified version of Google-Research's Shampoo
+(https://github.com/google-research/google-research/tree/master/scalable_shampoo/pytorch)
+which distributes the preconditioner computation across the data-parallel
+ranks of a DeepSpeed topology.
+"""
 
 from __future__ import print_function
 
@@ -31,13 +37,16 @@ from torch.nn.utils import vector_to_parameters, parameters_to_vector
 
 import torch.distributed as dist
 
-# only used to predict comp cost for partitioning
-class Fake_shape_class:
-  def __init__(self, shape: tuple):
-    self.shape = shape
 
-  def shape(self):
-    return self.shape
+class _FakeVar:
+  """Stand-in for a parameter that only carries a shape.
+
+  Used to predict the preconditioning cost of a layer without having
+  the actual tensor at hand.
+  """
+
+  def __init__(self, shape):
+    self.shape = shape
 
 
 # Grafting is a technique to fix the layerwise scale of Shampoo optimizer.
@@ -73,9 +82,23 @@ class ShampooHyperParams:
   # 12 x [1024, 512] L and R statistics. Disabled by default which results in
   # Shampoo constructing statistics [4, 4], [3, 3], [1024, 1024], [512, 512].
   best_effort_shape_interpretation: bool = False
-  # to ignore certain type of layers to precondition like the embedding layer
-  # [(name, module) for name, module in model.named_modules() if (hasattr(module, 'weight') or hasattr(module, 'bias'))]
+  # Optional list of (name, module) tuples, one entry per parameter, in the
+  # same order as the parameters given to the optimizer. Used to skip
+  # preconditioning of embedding layers (any name containing "embed") and for
+  # gpt2_fair_blocks. Build it like this:
+  #   named_modules = []
+  #   for name, module in model.named_modules():
+  #     if hasattr(module, 'weight'):
+  #       named_modules.append((name, module))
+  #     if hasattr(module, 'bias') and module.bias is not None:
+  #       named_modules.append((name, module))
   named_modules: list = None
+  # Number of iterations for the inverse-pth root computation (coupled Newton
+  # iteration and power iteration).
+  num_iter: int = 20
+  # If True, always run exactly num_iter iterations instead of stopping at
+  # convergence. Keeps the amount of work identical on all ranks.
+  fix_iter: bool = True
   # If model parallelism is also altered as well, any given parallel configuration should have the same shapes of prec matrices
   gpt2_fair_blocks: bool = False
   # Type of grafting (SGD or AdaGrad).
@@ -110,7 +133,7 @@ class SGDGraft(Graft):
 
   def __init__(self, hps, var):
     super(SGDGraft, self).__init__(hps, var)
-    self.momentum = torch.zeros_like(var.data, device=var.get_device())
+    self.momentum = torch.zeros_like(var.data)
 
   def update_momentum(self, update, beta1):
     self.momentum.mul_(beta1).add_(update)
@@ -125,7 +148,7 @@ class AdagradGraft(SGDGraft):
 
   def __init__(self, hps, var):
     super(AdagradGraft, self).__init__(hps, var)
-    self.statistics = torch.zeros_like(var.data, device=var.get_device())
+    self.statistics = torch.zeros_like(var.data)
 
   def add_statistics(self, grad):
     self.statistics.add_(grad * grad)
@@ -271,8 +294,9 @@ class Preconditioner:
     self._partitioner = BlockPartitioner(reshaped_var, hps, enum)
     shapes = self._partitioner.shapes_for_preconditioners()
     rank = len(self._transformed_shape)
-    device = var.get_device()
-    if rank <= 1 or "embed" in self._hps.named_modules[enum][0]:
+    device = var.device
+    module_name = hps.named_modules[enum][0] if hps.named_modules is not None else ''
+    if rank <= 1 or "embed" in module_name:
       self.statistics = []
       self.preconditioners = []
     else:
@@ -310,7 +334,8 @@ class Preconditioner:
     eps = self._hps.matrix_eps
     for i, stat in enumerate(self.statistics):
       self.preconditioners[i] = matrix_functions.ComputePower(
-          stat, exp, ridge_epsilon=eps, iter_count=20, fix_iter=True)
+          stat, exp, ridge_epsilon=eps,
+          iter_count=self._hps.num_iter, fix_iter=self._hps.fix_iter)
 
   def preconditioned_grad(self, grad):
     """Precondition the gradient.
@@ -354,19 +379,15 @@ class Shampoo_3D(optim.Optimizer):
                params,
                world_rank=0,
                world_size=1, 
-               topology=None,                 # dictionary of the topology: e.g. {ProcessCoord(pipe=0, data=0): 0, ProcessCoord(pipe=0, data=1): 1, ProcessCoord(pipe=1, data=0): 2, ProcessCoord(pipe=1, data=1): 3}
-               shapes=None,                   # list of tuples of all the shapes (needed for ZeRO stage >= 1 and for DP). Should be like this: [tuple(p.shape) for p in model.parameters() if p.requires_grad]
-               zero_stage=0,                  # weither ZeRO optimization is active or not {0,1,2,3}
+               topology=None,                 # DeepSpeed process topology, e.g. model.topology() of a PipelineModule. None disables the distribution (plain Shampoo).
+               shapes=None,                   # list of shape tuples, one per parameter. Derived from params if None.
+               zero_stage=0,                  # whether ZeRO optimization is active or not {0,1,2,3}. Only stage 0 is supported.
                partition_by_num_layers=False, # Sometimes, it is of interest to split by number of layers, instead of predicting the cost of each layer
                gpt2_partitioning=False,       # partition between the transformer encoder layers
                gpt2_nlayers=None,             # number of transformer encoder layers
                lr=1.0,
                momentum=0.9,
-               hyperparams=ShampooHyperParams()):
-
-    assert shapes is not None, "initialize shampoo with the given shapes!"
-    assert len(shapes) == len(hyperparams.named_modules), f"they are not the same size {len(shapes)} != {len(hyperparams.named_modules)}!"
-    self.shapes = shapes
+               hyperparams=None):
 
     assert zero_stage == 0, "Shampoo does not work with ZeRO stage > 0, because ZeRO does not store the prec matrices!"
     self.zero_stage = zero_stage
@@ -376,47 +397,55 @@ class Shampoo_3D(optim.Optimizer):
 
     self.topology = topology
 
-    # let's create process group for the data parallel parts!
     if topology is not None:
-      if topology.get_dim('data') > 1: # only build dp_groups if data parallelism is active!
-        self.data_comm_lists = topology.get_axis_comm_lists('data') #creates suitable communicator groups along data parallelism
-        self.dp_groups = []
-        for comm_list in self.data_comm_lists:
-          if self.world_rank in comm_list:
-            self.comm_list = comm_list
-          self.dp_groups.append(dist.new_group(ranks=comm_list, backend='nccl'))
-      else:
-        self.dp_groups = None
-
       try:
         self.mp_dim = self.topology.get_dim('model')
-      except:
+      except Exception:
         self.mp_dim = 1
         print("Shampoo initialize: No model parallelism, but ok.")
 
       try:
         self.pp_dim = self.topology.get_dim('pipe')
-      except:
+      except Exception:
         self.pp_dim = 1
         print("Shampoo initialize: No pipeline parallelism, but ok.")
-      
+
       try:
         self.dp_dim = self.topology.get_dim('data')
-      except:
+      except Exception:
         self.dp_dim = 1
         print("Shampoo initialize: No data parallelism, but ok.")
+
+      # let's create process groups for the data parallel parts!
+      if self.dp_dim > 1: # only build dp_groups if data parallelism is active!
+        self.data_comm_lists = topology.get_axis_comm_lists('data') #creates suitable communicator groups along data parallelism
+        self.dp_groups = []
+        for comm_list in self.data_comm_lists:
+          if self.world_rank in comm_list:
+            self.comm_list = comm_list
+          # new_group() is collective: every rank has to create every group
+          self.dp_groups.append(dist.new_group(ranks=comm_list))
+      else:
+        self.dp_groups = None
 
     else:
       self.dp_groups = None
       self.dp_dim = 1
       self.pp_dim = 1
       self.mp_dim = 1
-    
+
 
     defaults = dict(lr=lr, momentum=momentum)
-    self.hps = hyperparams
+    self.hps = hyperparams if hyperparams is not None else ShampooHyperParams()
 
-    super(Shampoo, self).__init__(params, defaults)
+    super().__init__(params, defaults)
+
+    if shapes is None:
+      shapes = [tuple(p.shape) for group in self.param_groups for p in group['params']]
+    self.shapes = shapes
+
+    if self.hps.named_modules is not None:
+      assert len(shapes) == len(self.hps.named_modules), f"they are not the same size {len(shapes)} != {len(self.hps.named_modules)}!"
 
     # fair block partitioning if gpt2
     if self.hps.gpt2_fair_blocks:
@@ -436,6 +465,9 @@ class Shampoo_3D(optim.Optimizer):
       self.splits, self.partitioned_modules = self.get_distr_prec_partition_gpt2()
     else:
       self.splits, self.partitioned_modules = self.get_distr_prec_partition()
+
+    # shapes of the preconditioners computed by this rank during the last step()
+    self.precs = []
 
 
         
@@ -477,7 +509,7 @@ class Shampoo_3D(optim.Optimizer):
 
     assert min_index >= 0, f"something went wrong: {layers_reindexed}"
 
-    assert (self.gpt2_nlayers % self.dp_dim) == 0 and (self.gpt2_nlayers % self.dp_dim) == 0, f"gpt2_nlayers: {self.gpt2_nlayers} has to be divisible by dp_dim: {self.dp_dim} and by pp_dim: {self.pp_dim}!"
+    assert (self.gpt2_nlayers % (self.dp_dim * self.pp_dim)) == 0, f"gpt2_nlayers: {self.gpt2_nlayers} has to be divisible by dp_dim: {self.dp_dim} times pp_dim: {self.pp_dim}!"
 
     layers_reindexed -= min_index
     layers_reindexed //= int(self.gpt2_nlayers/(self.dp_dim*self.pp_dim))
@@ -517,24 +549,16 @@ class Shampoo_3D(optim.Optimizer):
     [0,1,1]
     """
 
-    total_comp_cost = 0
     comp_cost_layers = []
-    shapes_list = []
     for enum, p_shape in enumerate(self.shapes):
       if self.partition_by_num_layers:
-        comp_cost = 1
-        total_comp_cost += comp_cost
-        comp_cost_layers.append(comp_cost) 
+        comp_cost_layers.append(1)
       else:
         _transformed_shape = _merge_small_dims(p_shape, self.hps.block_size)
-        _transformed_shape_class = Fake_shape_class(_transformed_shape)
-        _partitioner = BlockPartitioner(_transformed_shape_class, self.hps)
+        _partitioner = BlockPartitioner(_FakeVar(_transformed_shape), self.hps, enum)
         shapes = _partitioner.shapes_for_preconditioners()
 
-        #shapes_list.append(_transformed_shape) # only for debugging
-        comp_cost = self.computational_cost(shapes)
-        total_comp_cost += comp_cost
-        comp_cost_layers.append(comp_cost)
+        comp_cost_layers.append(self.computational_cost(shapes))
 
     num_layers = len(comp_cost_layers)
 
@@ -639,7 +663,7 @@ class Shampoo_3D(optim.Optimizer):
   def init_var_state(self, enum, var, state):
     """Initialize the PyTorch state of for a single variable."""
     state[STEP] = 0
-    state[MOMENTUM] = torch.zeros_like(var.data, device=var.get_device())
+    state[MOMENTUM] = torch.zeros_like(var.data)
     state[PRECONDITIONER] = Preconditioner(enum, var, self.hps)
     if self.hps.graft_type == LayerwiseGrafting.ADAGRAD:
       state[GRAFT] = AdagradGraft(self.hps, var)
@@ -656,96 +680,90 @@ class Shampoo_3D(optim.Optimizer):
       self.precs = []
       assert (self.dp_groups is None) or (len(group['params']) == len(self.partitioned_modules))
       for enum, p in enumerate(group['params']):
-        if (self.dp_groups is None) or (self.world_rank == self.comm_list[self.partitioned_modules[enum]]):
-          if p.grad is None: continue
-          grad = p.grad.data
-          if grad.is_sparse:
-            raise RuntimeError('Shampoo does not support sparse yet')
-          state = self.state[p]
-          if not state:
-            self.init_var_state(enum, p, state)
-          state[STEP] += 1
+        if (self.dp_groups is not None) and (self.world_rank != self.comm_list[self.partitioned_modules[enum]]):
+          continue # this parameter is preconditioned and updated by another rank of the DP group
+        if p.grad is None: continue
+        grad = p.grad.data
+        if grad.is_sparse:
+          raise RuntimeError('Shampoo does not support sparse yet')
+        state = self.state[p]
+        if not state:
+          self.init_var_state(enum, p, state)
+        state[STEP] += 1
 
-          preconditioner = state[PRECONDITIONER]
-          graft = state[GRAFT]
+        preconditioner = state[PRECONDITIONER]
+        graft = state[GRAFT]
 
-          # Gather statistics, compute preconditioners
-          graft.add_statistics(grad)
-          if state[STEP] % hps.statistics_compute_steps == 0:
-            preconditioner.add_statistics(grad)
-          if state[STEP] % hps.preconditioning_compute_steps == 0:
-            preconditioner.compute_preconditioners()
+        # Gather statistics, compute preconditioners
+        graft.add_statistics(grad)
+        if state[STEP] % hps.statistics_compute_steps == 0:
+          preconditioner.add_statistics(grad)
+        if state[STEP] % hps.preconditioning_compute_steps == 0:
+          preconditioner.compute_preconditioners()
 
-          # Precondition gradients
-          graft_grad = graft.precondition_gradient(grad)
-          shampoo_grad = grad
-          if state[STEP] >= self.hps.start_preconditioning_step:
-            shampoo_grad = preconditioner.preconditioned_grad(grad)
+        # Precondition gradients
+        graft_grad = graft.precondition_gradient(grad)
+        shampoo_grad = grad
+        if state[STEP] >= self.hps.start_preconditioning_step:
+          shampoo_grad = preconditioner.preconditioned_grad(grad)
 
-          # Grafting
-          graft_norm = torch.norm(graft_grad)
-          shampoo_norm = torch.norm(shampoo_grad)
-          shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
+        # Grafting
+        graft_norm = torch.norm(graft_grad)
+        shampoo_norm = torch.norm(shampoo_grad)
+        shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
 
-          # Weight decay
-          if self.hps.weight_decay != 0.0:
-            shampoo_grad.add_(p.data, alpha=self.hps.weight_decay)
-            graft_grad.add_(p.data, alpha=self.hps.weight_decay)
+        # Weight decay
+        if self.hps.weight_decay != 0.0:
+          shampoo_grad.add_(p.data, alpha=self.hps.weight_decay)
+          graft_grad.add_(p.data, alpha=self.hps.weight_decay)
 
-          # Momentum and Nesterov momentum, if needed
-          state[MOMENTUM].mul_(group['momentum']).add_(shampoo_grad)
-          graft_momentum = graft.update_momentum(grad, group['momentum'])
+        # Momentum and Nesterov momentum, if needed
+        state[MOMENTUM].mul_(group['momentum']).add_(shampoo_grad)
+        graft_momentum = graft.update_momentum(grad, group['momentum'])
 
-          if state[STEP] >= self.hps.start_preconditioning_step:
-            momentum_update = state[MOMENTUM]
-            wd_update = shampoo_grad
-          else:
-            momentum_update = graft_momentum
-            wd_update = graft_grad
+        if state[STEP] >= self.hps.start_preconditioning_step:
+          momentum_update = state[MOMENTUM]
+          wd_update = shampoo_grad
+        else:
+          momentum_update = graft_momentum
+          wd_update = graft_grad
 
-          if hps.nesterov:
-            momentum_update.mul_(group['momentum']).add_(wd_update)
+        if hps.nesterov:
+          momentum_update.mul_(group['momentum']).add_(wd_update)
 
-          # Final update
-          p.data.add_(momentum_update, alpha=-lr)
+        # Final update
+        p.data.add_(momentum_update, alpha=-lr)
 
-          self.precs.append([prec.shape for prec in preconditioner.preconditioners])
+        self.precs.append([prec.shape for prec in preconditioner.preconditioners])
 
+      # Each rank has only updated the parameters it preconditions, so
+      # broadcast them back to the other ranks of the DP group
+      # (only needed for ZeRO_stage == 0).
+      if self.dp_groups is not None:
+        params = list(group['params'])
 
-        # broadcast those parameters back to the other DP group if it exists (only needed for ZeRO_stage == 0)
-        if self.dp_groups is not None:
-          params = [p for p in group['params'] if p.grad is not None]
+        # pack the parameters of each rank into one flat tensor per rank
+        boundaries = [0] + list(self.splits) + [len(params)]
+        params_list = []
+        tensor_list = []
+        for lo, hi in zip(boundaries[:-1], boundaries[1:]):
+          params_split = params[lo:hi]
+          params_list.append(params_split)
+          tensor_list.append(parameters_to_vector(params_split))
 
-          params_list = []
-          tensor_list = []
-          for i in range(len(self.splits)):
-            if i == 0:
-              params_split = params[:self.splits[i]]
-              params_list.append(params_split)
-              tensor_list.append(parameters_to_vector(params_split))
-            elif len(self.splits) > 1:
-              params_split = params[self.splits[i-1]:self.splits[i]]
-              params_list.append(params_split)
-              tensor_list.append(parameters_to_vector(params_split))
-            
-            if i == len(self.splits) - 1:
-              params_split = params[self.splits[i]:]
-              params_list.append(params_split)
-              tensor_list.append(parameters_to_vector(params_split))
+        assert len(self.splits)+1 == len(tensor_list) <= self.dp_dim, str(self.splits) + ', ' + str(len(tensor_list)) + ', '  + str(self.dp_dim)
 
-          assert len(self.splits)+1 == len(tensor_list) <= self.dp_dim, str(self.splits) + ', ' + str(len(tensor_list)) + ', '  + str(self.topology.get_dim('data'))
+        for enum, comm_list in enumerate(self.data_comm_lists):
+          # if there are fewer layers than ranks, the last ranks own nothing
+          assert len(comm_list) >= len(tensor_list)
+          if self.world_rank in comm_list:
+            handler_list = []
+            for i in range(len(tensor_list)):
+              handler = dist.broadcast(tensor_list[i], comm_list[i], group=self.dp_groups[enum], async_op=True)
+              handler_list.append(handler)
 
-          for enum, comm_list in enumerate(self.data_comm_lists):
-            assert len(comm_list) == len(tensor_list)
-            if self.world_rank in comm_list:
-              handler_list = []
-              for i in range(len(tensor_list)):
-                handler = dist.broadcast(tensor_list[i], comm_list[i], group=self.dp_groups[enum], async_op=True)
-                
-                handler_list.append(handler)
+            for handler in handler_list:
+              handler.wait()
 
-                for handler in handler_list:
-                  handler.wait()
-
-          for i in range(len(tensor_list)): # all GPUs unpack the new gotten params
-            vector_to_parameters(tensor_list[i], params_list[i])
+        for i in range(len(tensor_list)): # all GPUs unpack the newly received params
+          vector_to_parameters(tensor_list[i], params_list[i])
