@@ -136,3 +136,14 @@ match a single-process reference:
 ```bash
 python tests/test_shampoo_3d.py
 ```
+
+The last test group emulates a full 3D-parallel run (2 pipeline stages × 2 model-parallel
+slices × 2 data-parallel replicas = 8 ranks) on CPU. This works without 8 GPUs because the
+optimizer only ever sees its rank's model shard, the DeepSpeed topology object and the
+`torch.distributed` groups along the data-parallel axis — so 8 CPU processes with the gloo
+backend and a real `PipeModelDataParallelTopology(num_pp=2, num_mp=2, num_dp=2)` exercise
+exactly the code path of a real 3D run. The test asserts that the data-parallel groups pair
+up the right ranks, that the two ranks of each group precondition disjoint halves of their
+shard, that their parameters stay bitwise identical, and that every shard matches a
+single-process Shampoo reference. (What this cannot cover is the DeepSpeed *engine* itself —
+actual pipeline scheduling and tensor-parallel matmuls — which needs one GPU per rank.)
